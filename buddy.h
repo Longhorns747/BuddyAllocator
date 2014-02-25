@@ -1,8 +1,8 @@
 typedef struct block {
 	int size;
 	void *front;
+	char free;
 	struct block *buddy;
-	char is_split;
 	struct block *parent;
 } block;
 
