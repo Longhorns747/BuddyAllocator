@@ -3,15 +3,16 @@
  * By Ethan Shernan, Steven Wojcio, Chris Gordon AKA "The Ballmers"
  */
 
-#include <"buddy.h">
+#include "buddy.h"
 #include <sys/mman.h>
+#include <stdlib.h>
 
 block* search(int size);
 block* split(block *curr_block);
 block* coalesce(block *b1);
 void* gtmalloc(size_t size);
 void gtfree(void *ptr);
-void remove_free(block* block);
+void remove_free(block *block);
 void add_free(block* block);
 void remove_in_use(block* block);
 void add_in_use(block* block);
@@ -132,14 +133,14 @@ void gtfree(void *ptr)
 	return;
 }
 
-int remove_free(block* block) {
+int remove_free(block *b1) {
 	//simply take the block out of the free list
     node *curr_node = free_list->head;
     node *prev_node = NULL;
 
     while(curr_node != NULL)
     {
-        if(curr_node->block == *block)
+        if(curr_node->block == b1)
         {
             //Actually remove   
             prev_node->next = curr_node->next;
@@ -153,7 +154,7 @@ int remove_free(block* block) {
         curr_node = curr_node->next;
     }
 
-    return NULL;
+    return 0;
 }
 
 void add_free(block* block) {
