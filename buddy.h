@@ -11,12 +11,7 @@ typedef struct node {
 	struct node *next;
 } node;
 
-typedef struct free_list {
+typedef struct linked_list {
 	node *head;
 	node *tail;
-} free_list;
-
-typedef struct in_use {
-	node *head;
-	node *tail;
-} in_use;
+} linked_list;
