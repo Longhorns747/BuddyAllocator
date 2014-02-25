@@ -132,9 +132,28 @@ void gtfree(void *ptr)
 	return;
 }
 
-void remove_free(block* block) {
+int remove_free(block* block) {
 	//simply take the block out of the free list
-	
+    node *curr_node = free_list->head;
+    node *prev_node = NULL;
+
+    while(curr_node != NULL)
+    {
+        if(curr_node->block == *block)
+        {
+            //Actually remove   
+            prev_node->next = curr_node->next;
+            curr_node->next = NULL;
+            
+            //Free
+            return munmap(curr_node, sizeof(node)); 
+        }
+        
+        prev_node = curr_node;
+        curr_node = curr_node->next;
+    }
+
+    return NULL;
 }
 
 void add_free(block* block) {
