@@ -13,6 +13,8 @@ void* gtmalloc(size_t size);
 void gtfree(void *ptr);
 void remove_free(block* block);
 void add_free(block* block);
+void remove_in_use(block* block);
+void add_in_use(block* block);
 
 linked_list* free_list;
 linked_list* in_use;
@@ -24,17 +26,18 @@ block* search(int size)
     //At each block, check if size requested > block size
     //If not, check if needs to be split
     //Otherwise, we found the tightest fit block
+    //
+    //TODO: Check if free list is empty
 	node *index = free_list->head;
-	while( index->block->size < size && index!=free_list->tail)
+	while( index->block->size < size && index!=NULL)
 		index = index->next;
-	
+	if (index == NULL) {
+		return NULL; //error... no blocks big enough
+	}
 	block *smallest_fit = index->block;
-	if (smallest_fit->size < size)
-		//error... no blocks big enough
-		return NULL;//?
-	if (smallest_fit->size > size<<1) { 
-		split(smallest_fit);
-		return search(size);	
+	
+	while (smallest_fit->size >= size<<1) { 
+		smallest_fit = split(smallest_fit);	
 	}
 	return smallest_fit;	
 }
@@ -58,6 +61,10 @@ block* split(block *curr_block)
 	new_block2->buddy = new_block1;
 	new_block2->front = new_block1->front + new_block1->size;
 	new_block2->parent = curr_block;
+
+	curr_block->free = false;
+	new_block1->free = true;
+	new_block2->free = true;
 	
 	remove_free(curr_block);
 	add_free(new_buddy1);
@@ -73,10 +80,15 @@ block* coalesce(block *b1)
     //Remove b1, b1's buddy from free_list
     //Add parent to free_list
     //recurse with parent and parent's buddy
+    //
+    //munmap b1 and its buddy... I was thinking we have garbage collection but this isn't java.
 	if (b1->free == false || b1->buddy == NULL || b1->buddy->free == false)
 		return b1;
 	remove_free(b1);
 	remove_free(b1->buddy);
+
+	munmap(b1->buddy,sizeof(block));
+	munmap(b1,sizeof(block));
 
 	add_free(b1->parent);
 	return coalesce(b1->parent);
@@ -101,17 +113,21 @@ void gtfree(void *ptr)
     //Put into free_list
     //Sort the in_use list
     //Return
-	block* index = in_use->head;
-	while(index->block->front != ptr && index != in_use->block->tail){
+    //
+    //TODO: Add a check for if there are no things in the in use list.
+	node* index = in_use->head;
+	while(index->block->front != ptr && index != NULL){
 		index = index->next;
 	}
 	
-	if (index->block->front != ptr){
+	if (index == NULL){
 		//error... we didnt have their thing
 		return;//?
 	}
 
 	index->free = true;
+	remove_in_use(index->block);
+	add_free(index->block);
 	coalesce(index);
 	return;
 }
@@ -123,4 +139,12 @@ void remove_free(block* block) {
 
 void add_free(block* block) {
 	//simply add the block to the free list in the right spot.
+}
+
+void remove_in_use(block* block) { 
+
+}
+
+void add_in_use(block* block) {
+	
 }
