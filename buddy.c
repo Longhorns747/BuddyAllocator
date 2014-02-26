@@ -4,8 +4,6 @@
  */
 
 #include "buddy.h"
-#include <sys/mman.h>
-#include <stdlib.h>
 
 block* search(int size);
 block* split(block *curr_block);
@@ -13,9 +11,9 @@ block* coalesce(block *b1);
 void* gtmalloc(size_t size);
 void gtfree(void *ptr);
 int remove_free(block *b1);
-void add_free(block* block);
-void remove_in_use(block* block);
-void add_in_use(block* block);
+void add_free(block* b1);
+void remove_in_use(block* b1);
+void add_in_use(block* b1);
 
 linked_list* free_list;
 linked_list* in_use;
@@ -68,10 +66,10 @@ block* split(block *curr_block)
 	new_block2->free = true;
 	
 	remove_free(curr_block);
-	add_free(new_buddy1);
-	add_free(new_buddy2);
+	add_free(new_block1);
+	add_free(new_block2);
 
-	return new_buddy1;
+	return new_block1;
 }
 
 //Coalesces two blocks together, then checks the parent ptrs and determines if they need to be coalesced
@@ -81,7 +79,6 @@ block* coalesce(block *b1)
     //Remove b1, b1's buddy from free_list
     //Add parent to free_list
     //recurse with parent and parent's buddy
-    //
     //munmap b1 and its buddy... I was thinking we have garbage collection but this isn't java.
 	if (b1->free == false || b1->buddy == NULL || b1->buddy->free == false)
 		return b1;
@@ -114,7 +111,6 @@ void gtfree(void *ptr)
     //Put into free_list
     //Sort the in_use list
     //Return
-    //
     //TODO: Add a check for if there are no things in the in use list.
 	node* index = in_use->head;
 	while(index->block->front != ptr && index != NULL){
@@ -126,11 +122,10 @@ void gtfree(void *ptr)
 		return;//?
 	}
 
-	index->free = true;
+	index->block->free = true;
 	remove_in_use(index->block);
 	add_free(index->block);
-	coalesce(index);
-	return;
+	coalesce(index->block);
 }
 
 int remove_free(block *b1) {
@@ -157,14 +152,19 @@ int remove_free(block *b1) {
     return 0;
 }
 
-void add_free(block* block) {
+void add_free(block* b1) {
 	//simply add the block to the free list in the right spot.
 }
 
-void remove_in_use(block* block) { 
+void remove_in_use(block* b1) { 
 
 }
 
-void add_in_use(block* block) {
+void add_in_use(block* b1) {
 	
+}
+
+int main()
+{
+    return 0;
 }

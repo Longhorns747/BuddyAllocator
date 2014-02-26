@@ -1,3 +1,7 @@
+#include <stdbool.h>
+#include <sys/mman.h>
+#include <stdlib.h>
+
 typedef struct block {
 	int size;
 	void *front;
