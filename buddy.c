@@ -12,7 +12,7 @@ block* split(block *curr_block);
 block* coalesce(block *b1);
 void* gtmalloc(size_t size);
 void gtfree(void *ptr);
-void remove_free(block *block);
+int remove_free(block *b1);
 void add_free(block* block);
 void remove_in_use(block* block);
 void add_in_use(block* block);
