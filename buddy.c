@@ -12,8 +12,9 @@ void* gtmalloc(size_t size);
 void gtfree(void *ptr);
 int remove_free(block *b1);
 void add_free(block* b1);
-void remove_in_use(block* b1);
+int remove_in_use(block *b1);
 void add_in_use(block* b1);
+int remove_from_ll(block* b1, node *head); 
 
 linked_list* free_list;
 linked_list* in_use;
@@ -130,7 +131,17 @@ void gtfree(void *ptr)
 
 int remove_free(block *b1) {
 	//simply take the block out of the free list
-    node *curr_node = free_list->head;
+    return remove_from_ll(b1, free_list->head);
+}
+
+int remove_in_use(block *b1) { 
+    //Remove a block from the in use list
+    return remove_from_ll(b1, in_use->head);
+}
+
+//Generic Remove from Linked List method
+int remove_from_ll(block* b1, node *head) { 
+    node *curr_node = head;
     node *prev_node = NULL;
 
     while(curr_node != NULL)
@@ -140,9 +151,7 @@ int remove_free(block *b1) {
             //Actually remove   
             prev_node->next = curr_node->next;
             curr_node->next = NULL;
-            
-            //Free
-            return munmap(curr_node, sizeof(node)); 
+            return 1; 
         }
         
         prev_node = curr_node;
@@ -152,16 +161,13 @@ int remove_free(block *b1) {
     return 0;
 }
 
-void add_free(block* b1) {
-	//simply add the block to the free list in the right spot.
-}
-
-void remove_in_use(block* b1) { 
-
-}
-
 void add_in_use(block* b1) {
 	
+}
+
+
+void add_free(block* b1) {
+	//simply add the block to the free list in the right spot.
 }
 
 int main()
