@@ -132,23 +132,29 @@ void gtfree(void *ptr)
 
 int remove_free(block *b1) {
 	//simply take the block out of the free list
-    return remove_from_ll(b1, free_list->head);
+    return remove_from_ll(b1, free_list);
 }
 
 int remove_in_use(block *b1) { 
     //Remove a block from the in use list
-    return remove_from_ll(b1, in_use->head);
+    return remove_from_ll(b1, in_use);
 }
 
 //Generic Remove from Linked List method
-int remove_from_ll(block* b1, node *head) { 
-    node *curr_node = head;
+int remove_from_ll(block* b1, linked_list *ll) { 
+    node *curr_node = ll->head;
     node *prev_node = NULL;
 
     while(curr_node != NULL)
     {
         if(curr_node->block == b1)
         {
+            if(curr_node == ll->head)
+            {
+                ll->head = NULL;
+                return 1;
+            }
+            
             //Actually remove   
             prev_node->next = curr_node->next;
             curr_node->next = NULL;
