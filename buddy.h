@@ -1,17 +1,18 @@
 #include <stdbool.h>
 #include <sys/mman.h>
 #include <stdlib.h>
+#include <stdio.h>
 
-typedef struct block {
+typedef struct t_block {
 	int size;
 	void *front;
 	char free;
-	struct block *buddy;
-	struct block *parent;
-} block;
+	struct t_block *buddy;
+	struct t_block *parent;
+} block_t;
 
 typedef struct node {
-	block* block;
+	block_t* block;
 	struct node *next;
 } node;
 
