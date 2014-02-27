@@ -15,6 +15,7 @@ void add_free(block* b1);
 int remove_in_use(block *b1);
 void add_in_use(block* b1);
 int remove_from_ll(block* b1, node *head); 
+void add_in_order(block* b1, linked_list *list);
 
 linked_list* free_list;
 linked_list* in_use;
@@ -162,15 +163,45 @@ int remove_from_ll(block* b1, node *head) {
 }
 
 void add_in_use(block* b1) {
-	
+	return add_in_order(b1, in_use);
 }
-
 
 void add_free(block* b1) {
-	//simply add the block to the free list in the right spot.
+	return add_in_order(b1, free_list);
 }
 
+void add_in_order(block* b1, linked_list* list) {
+	node *new_node;
+	new_node->block = b1;
+	node *prev = list->head;
+
+	//if its the smallest block, make it the head
+	if(list->head != NULL && b1->size <= prev->block->size)
+	{
+		new_node->next = list->head;
+		list->head = new_node;
+		return;
+	}
+
+	//search for the correct spot and add it
+	node *curr = prev->next;
+	while(curr != NULL)
+	{
+		if(b1->size <= prev->block->size)
+		{
+			new_node->next = prev->next;
+			prev->next = new_node;
+			return;
+		}
+	}
+
+	//if b1 is the largest block, just append it to the end
+	prev->next = new_node;
+	return; 		
+		
+}
 int main()
 {
     return 0;
 }
+
