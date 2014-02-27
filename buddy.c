@@ -33,7 +33,9 @@ block* search(int size)
 	while( index->block->size < size && index!=NULL)
 		index = index->next;
 	if (index == NULL) {
-		return NULL; //error... no blocks big enough
+		block *new_block = mmap(NULL, 4096, PROT_WRITE, 0, 0, 0);
+		add_in_use(new_block);
+		index = new_block;	
 	}
 	block *smallest_fit = index->block;
 	
@@ -52,8 +54,8 @@ block* split(block *curr_block)
     //Connect Buddy pointers
     //Create parent ptr
     //Sort free_list
-	block* new_block1 = mmap(NULL,sizeof(block),0,0,0,0);
-	block* new_block2 = mmap(NULL,sizeof(block),0,0,0,0);
+	block* new_block1;
+	block* new_block2;
 	new_block1->size = curr_block->size>>1;
 	new_block1->buddy = new_block2;
 	new_block1->front = curr_block->front;
@@ -87,9 +89,6 @@ block* coalesce(block *b1)
 	remove_free(b1);
 	remove_free(b1->buddy);
 
-	munmap(b1->buddy,sizeof(block));
-	munmap(b1,sizeof(block));
-
 	add_free(b1->parent);
 	return coalesce(b1->parent);
 }
@@ -99,6 +98,12 @@ void* gtmalloc(size_t size)
    //Search for block
    //Put block in_use list
    //return void pointer 
+
+	if(in_use == NULL)
+	{
+		in_use = mmap(NULL, sizeof(linked_list), PROT_WRITE, 0, 0, 0);
+		free_list = mmap(NULL, sizeof(linked_list), PROT_WRITE, 0, 0, 0);
+	}
 	block* smallest_fit = search(size);
 	add_in_use(smallest_fit);
 	remove_free(smallest_fit);
@@ -113,15 +118,30 @@ void gtfree(void *ptr)
     //Put into free_list
     //Sort the in_use list
     //Return
-    //TODO: Add a check for if there are no things in the in use list.
 	node* index = in_use->head;
 	while(index->block->front != ptr && index != NULL){
 		index = index->next;
 	}
 	
-	if (index == NULL){
-		//error... we didnt have their thing
-		return;//?
+	if (index == NULL && in_use->head == NULL){
+		node *curr = free_list->head;
+		node *next = curr->next;
+		if(curr == NULL){
+			return;
+		}
+		while(next != NULL){
+			munmap(curr->block->front, curr->block->size);
+			munmap(curr->block, sizeof(block));
+			munmap(curr, sizeof(node));
+			curr = next;
+			next = next->next;
+		}
+		if(curr != NULL){
+			munmap(curr->block->front, curr->block->size);
+			munmap(curr->block, sizeof(block));
+			munmap(curr, sizeof(node));
+		}
+		return;
 	}
 
 	index->block->free = true;
@@ -208,6 +228,10 @@ void add_in_order(block* b1, linked_list* list) {
 }
 int main()
 {
+	int *stuff = (int *)(gtmalloc(69));
+	*stuff = 5;
+	printf("%d\n", *stuff);
+	gtfree(stuff);
     return 0;
 }
 
