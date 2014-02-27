@@ -2,16 +2,16 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 
-typedef struct block {
+typedef struct t_block {
 	int size;
 	void *front;
 	char free;
-	struct block *buddy;
-	struct block *parent;
-} block;
+	struct t_block *buddy;
+	struct t_block *parent;
+} t_block;
 
 typedef struct node {
-	block* block;
+	t_block* block;
 	struct node *next;
 } node;
 

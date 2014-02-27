@@ -5,17 +5,17 @@
 
 #include "buddy.h"
 
-block* search(int size);
-block* split(block *curr_block);
-block* coalesce(block *b1);
+block_t* search(int size);
+block_t* split(block *curr_block);
+block_t* coalesce(block *b1);
 void* gtmalloc(size_t size);
 void gtfree(void *ptr);
-int remove_free(block *b1);
-void add_free(block* b1);
-int remove_in_use(block *b1);
-void add_in_use(block* b1);
-int remove_from_ll(block* b1, node *head); 
-void add_in_order(block* b1, linked_list *list);
+int remove_free(block_t *b1);
+void add_free(block_t* b1);
+int remove_in_use(block_t *b1);
+void add_in_use(block_t* b1);
+int remove_from_ll(block_t* b1, node *head); 
+void add_in_order(block_t* b1, linked_list *list);
 
 linked_list* free_list;
 linked_list* in_use;
@@ -35,7 +35,7 @@ block* search(int size)
 	if (index == NULL) {
 		return NULL; //error... no blocks big enough
 	}
-	block *smallest_fit = index->block;
+	block_t *smallest_fit = index->block;
 	
 	while (smallest_fit->size >= size<<1) { 
 		smallest_fit = split(smallest_fit);	
@@ -44,7 +44,7 @@ block* search(int size)
 }
 
 //Splits a block into two blocks of equal size and makes them buddies
-block* split(block *curr_block)
+block_t* split(block_t *curr_block)
 {
     //Create new block
     //Adjust block sizes
@@ -52,8 +52,8 @@ block* split(block *curr_block)
     //Connect Buddy pointers
     //Create parent ptr
     //Sort free_list
-	block* new_block1 = mmap(NULL,sizeof(block),0,0,0,0);
-	block* new_block2 = mmap(NULL,sizeof(block),0,0,0,0);
+	block_t* new_block1 = mmap(NULL,sizeof(block_t),0,0,0,0);
+	block_t* new_block2 = mmap(NULL,sizeof(block_t),0,0,0,0);
 	new_block1->size = curr_block->size>>1;
 	new_block1->buddy = new_block2;
 	new_block1->front = curr_block->front;
@@ -75,7 +75,7 @@ block* split(block *curr_block)
 }
 
 //Coalesces two blocks together, then checks the parent ptrs and determines if they need to be coalesced
-block* coalesce(block *b1)
+block_t* coalesce(block_t *b1)
 {
     //If buddy is not free, or don't have a buddy, return b1
     //Remove b1, b1's buddy from free_list
@@ -87,8 +87,8 @@ block* coalesce(block *b1)
 	remove_free(b1);
 	remove_free(b1->buddy);
 
-	munmap(b1->buddy,sizeof(block));
-	munmap(b1,sizeof(block));
+	munmap(b1->buddy,sizeof(block_t));
+	munmap(b1,sizeof(block_t));
 
 	add_free(b1->parent);
 	return coalesce(b1->parent);
@@ -99,7 +99,7 @@ void* gtmalloc(size_t size)
    //Search for block
    //Put block in_use list
    //return void pointer 
-	block* smallest_fit = search(size);
+	block_t* smallest_fit = search(size);
 	add_in_use(smallest_fit);
 	remove_free(smallest_fit);
 	return smallest_fit->front;
@@ -135,13 +135,13 @@ int remove_free(block *b1) {
     return remove_from_ll(b1, free_list->head);
 }
 
-int remove_in_use(block *b1) { 
+int remove_in_use(block_t *b1) { 
     //Remove a block from the in use list
     return remove_from_ll(b1, in_use->head);
 }
 
 //Generic Remove from Linked List method
-int remove_from_ll(block* b1, node *head) { 
+int remove_from_ll(block_t* b1, node *head) { 
     node *curr_node = head;
     node *prev_node = NULL;
 
@@ -162,15 +162,15 @@ int remove_from_ll(block* b1, node *head) {
     return 0;
 }
 
-void add_in_use(block* b1) {
+void add_in_use(block_t* b1) {
 	return add_in_order(b1, in_use);
 }
 
-void add_free(block* b1) {
+void add_free(block_t* b1) {
 	return add_in_order(b1, free_list);
 }
 
-void add_in_order(block* b1, linked_list* list) {
+void add_in_order(block_t* b1, linked_list* list) {
 	node *new_node;
 	new_node->block = b1;
 	node *prev = list->head;
