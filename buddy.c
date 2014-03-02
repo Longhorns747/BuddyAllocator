@@ -17,10 +17,10 @@ int remove_free(block_t *b1);
 void add_free(block_t* b1);
 int remove_in_use(block_t *b1);
 void add_in_use(block_t* b1);
-int remove_from_ll(block_t* b1, node *head); 
+int remove_from_ll(block_t* b1, linked_list *ll); 
 void add_in_order(block_t* b1, linked_list *list);
 
-int fd;
+static int fd;
 linked_list* free_list;
 linked_list* in_use;
 
@@ -35,9 +35,10 @@ block_t* search(int size)
 	while(index != NULL && index->block->size < size)
 		index = index->next;
 	if (index == NULL) {
-		block_t *new_block = mmap(NULL, 1073741824, PROT_READ | PROT_WRITE, fd, 0, 0);
-		add_in_use(new_block);
-		index->block = new_block;	
+		block_t *new_block = mmap(NULL, sizeof(block_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+		new_block->front = mmap(NULL, FILESIZE / 2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        add_in_use(new_block);
+		index = free_list->head;	
 	}
 	block_t *smallest_fit = index->block;
 	
@@ -157,23 +158,29 @@ void gtfree(void *ptr)
 
 int remove_free(block_t *b1) {
 	//simply take the block out of the free list
-    return remove_from_ll(b1, free_list->head);
+    return remove_from_ll(b1, free_list);
 }
 
 int remove_in_use(block_t *b1) { 
     //Remove a block from the in use list
-    return remove_from_ll(b1, in_use->head);
+    return remove_from_ll(b1, in_use);
 }
 
 //Generic Remove from Linked List method
-int remove_from_ll(block_t* b1, node *head) { 
-    node *curr_node = head;
+int remove_from_ll(block_t *b1, linked_list *ll) { 
+    node *curr_node = ll->head;
     node *prev_node = NULL;
 
     while(curr_node != NULL)
     {
         if(curr_node->block == b1)
         {
+           if(curr_node == ll->head)
+           {
+               ll->head = NULL;
+               return 1;     
+           }
+            
             //Actually remove   
             prev_node->next = curr_node->next;
             curr_node->next = NULL;
@@ -196,7 +203,7 @@ void add_free(block_t* b1) {
 }
 
 void add_in_order(block_t* b1, linked_list* list) {
-	node *new_node;
+	node *new_node = mmap(NULL, sizeof(node), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	new_node->block = b1;
 	node *prev = list->head;
 
