@@ -4,6 +4,9 @@
  */
 
 #include "buddy.h"
+#include <fcntl.h>
+#define FILEPATH "/tmp/mmapped.bin"
+#define FILESIZE 2147483648
 
 block_t* search(int size);
 block_t* split(block_t *curr_block);
@@ -17,6 +20,7 @@ void add_in_use(block_t* b1);
 int remove_from_ll(block_t* b1, node *head); 
 void add_in_order(block_t* b1, linked_list *list);
 
+int fd;
 linked_list* free_list;
 linked_list* in_use;
 
@@ -27,12 +31,11 @@ block_t* search(int size)
     //At each block, check if size requested > block size
     //If not, check if needs to be split
     //Otherwise, we found the tightest fit block
-    //
 	node *index = free_list->head;
-	while( index->block->size < size && index!=NULL)
+	while(index != NULL && index->block->size < size)
 		index = index->next;
 	if (index == NULL) {
-		block_t *new_block = mmap(NULL, 4096, PROT_WRITE, 0, 0, 0);
+		block_t *new_block = mmap(NULL, 1073741824, PROT_READ | PROT_WRITE, fd, 0, 0);
 		add_in_use(new_block);
 		index->block = new_block;	
 	}
@@ -94,14 +97,17 @@ block_t* coalesce(block_t *b1)
 
 void* gtmalloc(size_t size)
 {
-   //Search for block
-   //Put block in_use list
-   //return void pointer 
+    //Search for block
+    //Put block in_use list
+    //return void pointer
+    fd = open(FILEPATH, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
+    lseek(fd, FILESIZE-1, SEEK_SET);
+    write(fd, "", 1);
 
 	if(in_use == NULL)
 	{
-		in_use = mmap(NULL, sizeof(linked_list), PROT_WRITE, 0, 0, 0);
-		free_list = mmap(NULL, sizeof(linked_list), PROT_WRITE, 0, 0, 0);
+		in_use = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+		free_list = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	}
 	block_t* smallest_fit = search(size);
 	add_in_use(smallest_fit);
