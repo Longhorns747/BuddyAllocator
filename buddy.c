@@ -177,7 +177,7 @@ int remove_from_ll(block_t *b1, linked_list *ll) {
         {
            if(curr_node == ll->head)
            {
-               ll->head = NULL;
+               ll->head = curr_node->next;
                return 1;     
            }
             
