@@ -239,21 +239,22 @@ node* add_free(block_t* b1) {
 
 node* add_in_order(block_t* b1, linked_list* list) {
 	
-	if (free_list -> head == NULL) printf("1 still null.... wtf\n");
+	if (list -> head == NULL) printf("1 still null.... wtf\n");
 	node *new_node = mmap(NULL, sizeof(node), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	
-	if (free_list -> head == NULL) printf("2 still null.... wtf\n");
-	new_node->block = b1;
-	
-	if (free_list -> head == NULL) printf("3 still null.... wtf\n");
+		
+	if (list -> head == NULL) printf("2 still null.... wtf\n");
+	//new_node->block = b1;
+	printf("addr of b1 = %x",b1->front);	
+	if (list -> head == NULL) printf("3 still null.... wtf\n");
 	node *prev = list->head;
 	
 	if (list->head == NULL) {
 		printf("Should go here.. list head should be null\n");
+		new_node->block = b1;
 		list->head = new_node;
 		return new_node;
 	}
-
+	new_node->block = b1;
 	//if its the smallest block, make it the head
 	if(list->head != NULL && b1->size <= prev->block->size)
 	{
@@ -283,7 +284,7 @@ node* add_in_order(block_t* b1, linked_list* list) {
 int main()
 {
 	printf("Starting Test.\n");
-	int *stuff = (int *)(gtmalloc(69));
+	int *stuff = (int *)(gtmalloc(333169));
 	printf("Created 'stuff'\n");
 	if (in_use == NULL) printf("In Use is null\n");
 	else printf("%x\n",in_use->head->block->front);
