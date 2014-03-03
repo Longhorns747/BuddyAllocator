@@ -14,11 +14,11 @@ block_t* coalesce(block_t *b1);
 void* gtmalloc(size_t size);
 void gtfree(void *ptr);
 int remove_free(block_t *b1);
-void add_free(block_t* b1);
+node* add_free(block_t* b1);
 int remove_in_use(block_t *b1);
-void add_in_use(block_t* b1);
+node* add_in_use(block_t* b1);
 int remove_from_ll(block_t* b1, linked_list *ll); 
-void add_in_order(block_t* b1, linked_list *list);
+node* add_in_order(block_t* b1, linked_list *list);
 
 static int fd;
 linked_list* free_list;
@@ -31,19 +31,36 @@ block_t* search(int size)
     //At each block, check if size requested > block size
     //If not, check if needs to be split
     //Otherwise, we found the tightest fit block
+	
 	node *index = free_list->head;
+	printf("created index...");
+	if(index != NULL) printf("and it wasnt null.\n");
+	else printf("and it was null\n");
+
 	while(index != NULL && index->block->size < size)
 		index = index->next;
+
+	printf("finished while. index set\n");
+
 	if (index == NULL) {
+		printf("index was null\n");
 		block_t *new_block = mmap(NULL, sizeof(block_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+		//not sure why this line was here...
 		new_block->front = mmap(NULL, FILESIZE / 2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-        add_in_use(new_block);
-		index = free_list->head;	
+	       	printf("NEW BLOCK ADDR -> %x",new_block->front); 
+		printf("just mmapped again\n");
+		if(free_list -> head == NULL) printf("The free list is null now... what happens?\n"); 
+		index = add_free(new_block);
+		printf("added to in use and THIS IS WHAT THE ADDR IS %x\n",index->block->front);	
 	}
 	block_t *smallest_fit = index->block;
+
+	printf("smallest fit set\n");
 	
-	while (smallest_fit->size >= size<<1) { 
-		smallest_fit = split(smallest_fit);	
+	while (smallest_fit->size >= size<<1) {
+		printf("had to split\n"); 
+		smallest_fit = split(smallest_fit);
+		printf("split it\n");	
 	}
 	return smallest_fit;	
 }
@@ -57,12 +74,15 @@ block_t* split(block_t *curr_block)
     //Connect Buddy pointers
     //Create parent ptr
     //Sort free_list
-	block_t* new_block1;
-	block_t* new_block2;
+	block_t* new_block1 = mmap(NULL, curr_block->size / 2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	block_t* new_block2 = mmap(NULL, curr_block->size / 2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	new_block1->size = curr_block->size>>1;
 	new_block1->buddy = new_block2;
 	new_block1->front = curr_block->front;
 	new_block1->parent = curr_block;
+
+	printf("new block one built\n");
+
 	new_block2->size = new_block1->size;
 	new_block2->buddy = new_block1;
 	new_block2->front = new_block1->front + new_block1->size;
@@ -101,18 +121,32 @@ void* gtmalloc(size_t size)
     //Search for block
     //Put block in_use list
     //return void pointer
-    fd = open(FILEPATH, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
-    lseek(fd, FILESIZE-1, SEEK_SET);
-    write(fd, "", 1);
 
+    fd = open(FILEPATH, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
+    printf("Just did fd thing.\n");
+	lseek(fd, FILESIZE-1, SEEK_SET);
+    printf("lseek done.\n");
+
+    write(fd, "", 1);
+	printf("write fd done\n");
 	if(in_use == NULL)
 	{
+		printf("about to mmap\n");
 		in_use = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 		free_list = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+		
+		in_use -> head = NULL;
+		in_use -> tail = NULL;
+		free_list -> head = NULL;
+		free_list -> tail = NULL;
+		printf("done mmap\n");
 	}
 	block_t* smallest_fit = search(size);
+	printf("search done\n");
 	add_in_use(smallest_fit);
+	printf("added to in use\n");
 	remove_free(smallest_fit);
+	printf("removed from free\n");
 	return smallest_fit->front;
 }
 
@@ -173,7 +207,7 @@ int remove_from_ll(block_t *b1, linked_list *ll) {
 
     while(curr_node != NULL)
     {
-        if(curr_node->block == b1)
+	if(curr_node->block == b1)
         {
            if(curr_node == ll->head)
            {
@@ -194,25 +228,38 @@ int remove_from_ll(block_t *b1, linked_list *ll) {
     return 0;
 }
 
-void add_in_use(block_t* b1) {
+node* add_in_use(block_t* b1) {
 	return add_in_order(b1, in_use);
 }
 
-void add_free(block_t* b1) {
+node* add_free(block_t* b1) {
+	if (free_list -> head == NULL) printf("still null.... wtf\n");
 	return add_in_order(b1, free_list);
 }
 
-void add_in_order(block_t* b1, linked_list* list) {
+node* add_in_order(block_t* b1, linked_list* list) {
+	
+	if (free_list -> head == NULL) printf("1 still null.... wtf\n");
 	node *new_node = mmap(NULL, sizeof(node), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	
+	if (free_list -> head == NULL) printf("2 still null.... wtf\n");
 	new_node->block = b1;
+	
+	if (free_list -> head == NULL) printf("3 still null.... wtf\n");
 	node *prev = list->head;
+	
+	if (list->head == NULL) {
+		printf("Should go here.. list head should be null\n");
+		list->head = new_node;
+		return new_node;
+	}
 
 	//if its the smallest block, make it the head
 	if(list->head != NULL && b1->size <= prev->block->size)
 	{
-		new_node->next = list->head;
+		new_node->next = NULL;
 		list->head = new_node;
-		return;
+		return new_node;
 	}
 
 	//search for the correct spot and add it
@@ -223,18 +270,25 @@ void add_in_order(block_t* b1, linked_list* list) {
 		{
 			new_node->next = prev->next;
 			prev->next = new_node;
-			return;
+			return new_node;
 		}
 	}
 
 	//if b1 is the largest block, just append it to the end
 	prev->next = new_node;
-	return; 		
+	new_node -> next = NULL;
+	return new_node; 		
 		
 }
 int main()
 {
+	printf("Starting Test.\n");
 	int *stuff = (int *)(gtmalloc(69));
+	printf("Created 'stuff'\n");
+	if (in_use == NULL) printf("In Use is null\n");
+	else printf("%x\n",in_use->head->block->front);
+	if (free_list == NULL) printf("Free is null\n");
+	else printf("%x\n",free_list->head->block->front);
 	*stuff = 5;
 	printf("%d\n", *stuff);
 	gtfree(stuff);
