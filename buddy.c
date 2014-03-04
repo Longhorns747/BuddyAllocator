@@ -43,15 +43,18 @@ block_t* search(int size)
 	printf("finished while. index set\n");
 
 	if (index == NULL) {
-		printf("index was null\n");
-		block_t *new_block = mmap(NULL, sizeof(block_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+		//printf("index was null\n");
+		//block_t *new_block = mmap(NULL, sizeof(block_t), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 		//not sure why this line was here...
-		new_block->front = mmap(NULL, FILESIZE / 2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	       	printf("NEW BLOCK ADDR -> %x",new_block->front); 
-		printf("just mmapped again\n");
-		if(free_list -> head == NULL) printf("The free list is null now... what happens?\n"); 
-		index = add_free(new_block);
-		printf("added to in use and THIS IS WHAT THE ADDR IS %x\n",index->block->front);	
+		//printf("between mmaps\n");
+		//new_block->front = mmap(NULL, FILESIZE / 2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	       	//printf("NEW BLOCK ADDR -> %x",new_block->front); 
+		//printf("just mmapped again\n");
+		//if(free_list -> head == NULL) printf("The free list is null now... what happens?\n"); 
+		//index = add_free(new_block);
+	
+		//printf("added to in use and THIS IS WHAT THE ADDR IS %x\n",index->block->front);	
+		return NULL;
 	}
 	block_t *smallest_fit = index->block;
 
@@ -74,8 +77,9 @@ block_t* split(block_t *curr_block)
     //Connect Buddy pointers
     //Create parent ptr
     //Sort free_list
-	block_t* new_block1 = mmap(NULL, curr_block->size / 2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	block_t* new_block2 = mmap(NULL, curr_block->size / 2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	printf("CURR BLOCK SIZE>>> SPLITTING: %x",curr_block->size);
+	block_t* new_block1 = mmap(NULL, curr_block->size / 2, PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
+	block_t* new_block2 = mmap(NULL, curr_block->size / 2, PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 	new_block1->size = curr_block->size>>1;
 	new_block1->buddy = new_block2;
 	new_block1->front = curr_block->front;
@@ -121,32 +125,43 @@ void* gtmalloc(size_t size)
     //Search for block
     //Put block in_use list
     //return void pointer
+	if(in_use == NULL && free_list == NULL){
+    		printf("INITIALIZING!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+		fd = open(FILEPATH, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
+    //printf("Just did fd thing.\n");
+		lseek(fd, FILESIZE-1, SEEK_SET);
+    //printf("lseek done.\n");
 
-    fd = open(FILEPATH, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
-    printf("Just did fd thing.\n");
-	lseek(fd, FILESIZE-1, SEEK_SET);
-    printf("lseek done.\n");
-
-    write(fd, "", 1);
-	printf("write fd done\n");
-	if(in_use == NULL)
-	{
-		printf("about to mmap\n");
-		in_use = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-		free_list = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    		write(fd, "", 1);
+	//printf("write fd done\n");
+	//if(in_use == NULL)
+	//{
+		//printf("about to mmap\n");
+		in_use = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
+		free_list = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 		
+		block_t* new_block = mmap(NULL, sizeof(block_t),PROT_READ| PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
+		new_block->size = FILESIZE;
+		new_block->front = mmap(NULL, FILESIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+		new_block->parent = NULL;
+		new_block->buddy = NULL;
+		new_block->free = true;	
+		
+		node* new_node = mmap(NULL, sizeof(node),PROT_READ| PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
+		new_node->block = new_block;	
+	
 		in_use -> head = NULL;
 		in_use -> tail = NULL;
-		free_list -> head = NULL;
+		free_list -> head = new_node;
 		free_list -> tail = NULL;
-		printf("done mmap\n");
+		//printf("done mmap\n");
 	}
 	block_t* smallest_fit = search(size);
-	printf("search done\n");
+	//printf("search done\n");
 	add_in_use(smallest_fit);
-	printf("added to in use\n");
+	//printf("added to in use\n");
 	remove_free(smallest_fit);
-	printf("removed from free\n");
+	//printf("removed from free\n");
 	return smallest_fit->front;
 }
 
@@ -163,26 +178,26 @@ void gtfree(void *ptr)
 		index = index->next;
 	}
 	
-	if (index == NULL && in_use->head == NULL){
-		node *curr = free_list->head;
-		node *next = curr->next;
-		if(curr == NULL){
-			return;
-		}
-		while(next != NULL){
-			munmap(curr->block->front, curr->block->size);
-			munmap(curr->block, sizeof(block_t));
-			munmap(curr, sizeof(node));
-			curr = next;
-			next = next->next;
-		}
-		if(curr != NULL){
-			munmap(curr->block->front, curr->block->size);
-			munmap(curr->block, sizeof(block_t));
-			munmap(curr, sizeof(node));
-		}
-		return;
-	}
+	//if (index == NULL && in_use->head == NULL){
+		//node *curr = free_list->head;
+		//node *next = curr->next;
+		//if(curr == NULL){
+		//	return;
+		//}
+		//while(next != NULL){
+		//	munmap(curr->block->front, curr->block->size);
+		//	munmap(curr->block, sizeof(block_t));
+		//	munmap(curr, sizeof(node));
+		//	curr = next;
+		//	next = next->next;
+		//}
+		//if(curr != NULL){
+		//	munmap(curr->block->front, curr->block->size);
+		//	munmap(curr->block, sizeof(block_t));
+		//	munmap(curr, sizeof(node));
+		//}
+		//return;
+	//}
 
 	index->block->free = true;
 	remove_in_use(index->block);
@@ -233,32 +248,32 @@ node* add_in_use(block_t* b1) {
 }
 
 node* add_free(block_t* b1) {
-	if (free_list -> head == NULL) printf("still null.... wtf\n");
+//	if (free_list -> head == NULL) printf("still null.... wtf\n");
 	return add_in_order(b1, free_list);
 }
 
 node* add_in_order(block_t* b1, linked_list* list) {
 	
-	if (list -> head == NULL) printf("1 still null.... wtf\n");
-	node *new_node = mmap(NULL, sizeof(node), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	//if (list -> head == NULL) printf("1 still null.... wtf\n");
+	node *new_node = mmap(NULL, sizeof(node), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 		
-	if (list -> head == NULL) printf("2 still null.... wtf\n");
-	//new_node->block = b1;
-	printf("addr of b1 = %x",b1->front);	
-	if (list -> head == NULL) printf("3 still null.... wtf\n");
+	//if (list -> head == NULL) printf("2 still null.... wtf\n");
+	new_node->block = b1;
+	//printf("addr of b1 = %x",b1->front);	
+	//if (list -> head == NULL) printf("3 still null.... wtf\n");
 	node *prev = list->head;
 	
 	if (list->head == NULL) {
-		printf("Should go here.. list head should be null\n");
-		new_node->block = b1;
+		//printf("Should go here.. list head should be null\n");
+		//new_node->block = b1;
 		list->head = new_node;
 		return new_node;
 	}
-	new_node->block = b1;
+	//new_node->block = b1;
 	//if its the smallest block, make it the head
-	if(list->head != NULL && b1->size <= prev->block->size)
+	if(b1->size <= prev->block->size)
 	{
-		new_node->next = NULL;
+		new_node->next = prev;
 		list->head = new_node;
 		return new_node;
 	}
@@ -267,9 +282,9 @@ node* add_in_order(block_t* b1, linked_list* list) {
 	node *curr = prev->next;
 	while(curr != NULL)
 	{
-		if(b1->size <= prev->block->size)
+		if(b1->size <= curr->block->size)
 		{
-			new_node->next = prev->next;
+			new_node->next = curr;
 			prev->next = new_node;
 			return new_node;
 		}
@@ -284,15 +299,20 @@ node* add_in_order(block_t* b1, linked_list* list) {
 int main()
 {
 	printf("Starting Test.\n");
-	int *stuff = (int *)(gtmalloc(333169));
+	int *stuff = (int *)(gtmalloc(69));
+	int *stuff2 = (int *)(gtmalloc(16));
+	int *stuff3 = (int *)(gtmalloc(16));
 	printf("Created 'stuff'\n");
 	if (in_use == NULL) printf("In Use is null\n");
-	else printf("%x\n",in_use->head->block->front);
+	else printf("before seg used%x\n",in_use->head->block->front);
 	if (free_list == NULL) printf("Free is null\n");
-	else printf("%x\n",free_list->head->block->front);
+	//else printf("before seg free %x\n",free_list->head->block->front);
 	*stuff = 5;
-	printf("%d\n", *stuff);
+	*stuff2 = 6;
+	*stuff3 = 7;
+	printf("yo yo yo%d %d %d\n", *stuff,*stuff2,*stuff3);
 	gtfree(stuff);
-    return 0;
+	if (in_use == NULL && free_list == NULL) printf("good\n");    
+return 0;
 }
 

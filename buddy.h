@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 typedef struct t_block {
-	int size;
+	unsigned int size;
 	void *front;
 	char free;
 	struct t_block *buddy;
