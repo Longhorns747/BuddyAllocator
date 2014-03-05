@@ -179,7 +179,7 @@ void gtfree(void *ptr)
 		index = index->next;
 	}
 	
-	//if (index == NULL && in_use->head == NULL){
+	//if (in_use->head == NULL){
 		//node *curr = free_list->head;
 		//node *next = curr->next;
 		//if(curr == NULL){
@@ -333,6 +333,11 @@ int main()
 	*stuff3 = 7;
 	printf("yo yo yo%d %d %d\n", *stuff,*stuff2,*stuff3);
 	gtfree(stuff);
-	if (in_use == NULL && free_list == NULL) printf("good\n");    
+    gtfree(stuff2);
+    gtfree(stuff3);
+    printf("in_use\n");
+    print_ll(in_use);
+    printf("free_list\n");
+    print_ll(free_list);
     return 0;
 }
