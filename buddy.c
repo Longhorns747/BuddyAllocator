@@ -289,6 +289,7 @@ node* add_in_order(block_t* b1, linked_list* list) {
 			prev->next = new_node;
 			return new_node;
 		}
+        curr = curr->next;
 	}
 
 	//if b1 is the largest block, just append it to the end
@@ -320,7 +321,9 @@ int main()
 	int *stuff3 = (int *)(gtmalloc(16));
 	printf("Created 'stuff' printing in-use list\n");
 	print_ll(in_use);
-    
+    printf("Printing free-list\n");
+    print_ll(free_list);
+         
     if (in_use == NULL) printf("In Use is null\n");
 	else printf("before seg used%x\n",in_use->head->block->front);
 	if (free_list == NULL) printf("Free is null\n");
@@ -331,6 +334,5 @@ int main()
 	printf("yo yo yo%d %d %d\n", *stuff,*stuff2,*stuff3);
 	gtfree(stuff);
 	if (in_use == NULL && free_list == NULL) printf("good\n");    
-return 0;
+    return 0;
 }
-
