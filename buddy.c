@@ -19,6 +19,7 @@ int remove_in_use(block_t *b1);
 node* add_in_use(block_t* b1);
 int remove_from_ll(block_t* b1, linked_list *ll); 
 node* add_in_order(block_t* b1, linked_list *list);
+void print_ll(linked_list *ll);
 
 static int fd;
 linked_list* free_list;
@@ -293,17 +294,34 @@ node* add_in_order(block_t* b1, linked_list* list) {
 	//if b1 is the largest block, just append it to the end
 	prev->next = new_node;
 	new_node -> next = NULL;
-	return new_node; 		
-		
+	return new_node;		
 }
+
+void print_ll(linked_list *ll)
+{
+    node *curr_node = ll->head;
+    int count = 0;
+    
+    while(curr_node != NULL)
+    {
+        count++;
+        printf("Item %d: size %d, front %p, buddy: %p\n", count, curr_node->block->size, 
+            curr_node->block->front, curr_node->block->buddy); 
+        curr_node = curr_node->next;
+    }
+    printf("Total Size: %d\n", count);
+}
+
 int main()
 {
 	printf("Starting Test.\n");
 	int *stuff = (int *)(gtmalloc(69));
 	int *stuff2 = (int *)(gtmalloc(16));
 	int *stuff3 = (int *)(gtmalloc(16));
-	printf("Created 'stuff'\n");
-	if (in_use == NULL) printf("In Use is null\n");
+	printf("Created 'stuff' printing in-use list\n");
+	print_ll(in_use);
+    
+    if (in_use == NULL) printf("In Use is null\n");
 	else printf("before seg used%x\n",in_use->head->block->front);
 	if (free_list == NULL) printf("Free is null\n");
 	//else printf("before seg free %x\n",free_list->head->block->front);
