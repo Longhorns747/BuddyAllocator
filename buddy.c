@@ -34,39 +34,21 @@ block_t* search(int size)
     //Otherwise, we found the tightest fit block
 	
 	node *index = free_list->head;
-	printf("created index...");
-	if(index != NULL) printf("and it wasnt null.\n");
-	else printf("and it was null\n");
 
 	while(index != NULL && index->block->size < size)
 		index = index->next;
 
-	printf("finished while. index set\n");
-
 	if (index == NULL) {
-		//printf("index was null\n");
-		//block_t *new_block = mmap(NULL, sizeof(block_t), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
-		//not sure why this line was here...
-		//printf("between mmaps\n");
-		//new_block->front = mmap(NULL, FILESIZE / 2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	       	//printf("NEW BLOCK ADDR -> %x",new_block->front); 
-		//printf("just mmapped again\n");
-		//if(free_list -> head == NULL) printf("The free list is null now... what happens?\n"); 
-		//index = add_free(new_block);
-	
-		//printf("added to in use and THIS IS WHAT THE ADDR IS %x\n",index->block->front);	
 		return NULL;
 	}
-	block_t *smallest_fit = index->block;
-
-	printf("smallest fit set\n");
+	
+    block_t *smallest_fit = index->block;
 	
 	while (smallest_fit->size >= size<<1) {
-		printf("had to split\n"); 
 		smallest_fit = split(smallest_fit);
-		printf("split it\n");	
 	}
-	return smallest_fit;	
+	
+    return smallest_fit;	
 }
 
 //Splits a block into two blocks of equal size and makes them buddies
@@ -78,7 +60,6 @@ block_t* split(block_t *curr_block)
     //Connect Buddy pointers
     //Create parent ptr
     //Sort free_list
-	printf("CURR BLOCK SIZE>>> SPLITTING: %x",curr_block->size);
 	block_t* new_block1 = mmap(NULL, curr_block->size / 2, PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 	block_t* new_block2 = mmap(NULL, curr_block->size / 2, PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 	new_block1->size = curr_block->size>>1;
@@ -86,7 +67,6 @@ block_t* split(block_t *curr_block)
 	new_block1->front = curr_block->front;
 	new_block1->parent = curr_block;
 
-	printf("new block one built\n");
 
 	new_block2->size = new_block1->size;
 	new_block2->buddy = new_block1;
@@ -107,15 +87,14 @@ block_t* coalesce(block_t *b1)
     //Remove b1, b1's buddy from free_list
     //Add parent to free_list
     //recurse with parent and parent's buddy
-    //munmap b1 and its buddy... I was thinking we have garbage collection but this isn't java.
-	if (b1->free == false || b1->buddy == NULL || b1->buddy->free == false || b1->parent->free == true)
+	
+    if (b1->free == false || b1->buddy == NULL || b1->buddy->free == false || b1->parent->free == true)
 		return b1;
 	remove_free(b1);
 	remove_free(b1->buddy);
 
 	add_free(b1->parent);
 
-	printf("coalescing buddy: %p and buddy: %p of size: %u to parent: %p\n", b1->front, b1->buddy->front, b1->size, b1->parent->front);
 	return coalesce(b1->parent);
 }
 
@@ -125,17 +104,10 @@ void* gtmalloc(size_t size)
     //Put block in_use list
     //return void pointer
 	if(in_use == NULL && free_list == NULL){
-    		printf("INITIALIZING!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 		fd = open(FILEPATH, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
-    //printf("Just did fd thing.\n");
 		lseek(fd, FILESIZE-1, SEEK_SET);
-    //printf("lseek done.\n");
 
-    		write(fd, "", 1);
-	//printf("write fd done\n");
-	//if(in_use == NULL)
-	//{
-		//printf("about to mmap\n");
+        write(fd, "", 1);
 		in_use = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 		free_list = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 		
@@ -153,14 +125,10 @@ void* gtmalloc(size_t size)
 		in_use -> tail = NULL;
 		free_list -> head = new_node;
 		free_list -> tail = NULL;
-		//printf("done mmap\n");
 	}
 	block_t* smallest_fit = search(size);
-	//printf("search done\n");
 	add_in_use(smallest_fit);
-	//printf("added to in use\n");
 	remove_free(smallest_fit);
-	//printf("removed from free\n");
 	return smallest_fit->front;
 }
 
@@ -227,24 +195,17 @@ node* add_in_use(block_t* b1) {
 }
 
 node* add_free(block_t* b1) {
-//	if (free_list -> head == NULL) printf("still null.... wtf\n");
 	b1->free = true;
 	return add_in_order(b1, free_list);
 }
 
 node* add_in_order(block_t* b1, linked_list* list) {
 	
-	//if (list -> head == NULL) printf("1 still null.... wtf\n");
 	node *new_node = mmap(NULL, sizeof(node), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
-	//if (list -> head == NULL) printf("2 still null.... wtf\n");
 	new_node->block = b1;
-	//printf("addr of b1 = %x",b1->front);	
-	//if (list -> head == NULL) printf("3 still null.... wtf\n");
 	node *prev = list->head;
 	
 	if (list->head == NULL) {
-		//printf("Should go here.. list head should be null\n");
-		//new_node->block = b1;
 		list->head = new_node;
 		return new_node;
 	}
@@ -298,15 +259,12 @@ int main()
 	int *stuff2 = (int *)(gtmalloc(16));
 	int *stuff3 = (int *)(gtmalloc(16));
 	int *stuff4 = (int *)(gtmalloc(8));
-	printf("Created 'stuff' printing in-use list\n");
+	
+    printf("Created 'stuff' printing in-use list\n");
 	print_ll(in_use);
     printf("Printing free-list\n");
     print_ll(free_list);
          
-    if (in_use == NULL) printf("In Use is null\n");
-	else printf("before seg used%x\n",in_use->head->block->front);
-	if (free_list == NULL) printf("Free is null\n");
-	//else printf("before seg free %x\n",free_list->head->block->front);
 	*stuff = 5;
 	*stuff2 = 6;
 	*stuff3 = 7;
