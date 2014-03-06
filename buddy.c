@@ -93,10 +93,6 @@ block_t* split(block_t *curr_block)
 	new_block2->front = new_block1->front + new_block1->size;
 	new_block2->parent = curr_block;
 
-	curr_block->free = false;
-	new_block1->free = true;
-	new_block2->free = true;
-	
 	remove_free(curr_block);
 	add_free(new_block1);
 	add_free(new_block2);
@@ -112,12 +108,14 @@ block_t* coalesce(block_t *b1)
     //Add parent to free_list
     //recurse with parent and parent's buddy
     //munmap b1 and its buddy... I was thinking we have garbage collection but this isn't java.
-	if (b1->free == false || b1->buddy == NULL || b1->buddy->free == false)
+	if (b1->free == false || b1->buddy == NULL || b1->buddy->free == false || b1->parent->free == true)
 		return b1;
 	remove_free(b1);
 	remove_free(b1->buddy);
 
 	add_free(b1->parent);
+
+	printf("coalescing buddy: %p and buddy: %p of size: %u to parent: %p\n", b1->front, b1->buddy->front, b1->size, b1->parent->front);
 	return coalesce(b1->parent);
 }
 
@@ -178,29 +176,7 @@ void gtfree(void *ptr)
 	while(index->block->front != ptr && index != NULL){
 		index = index->next;
 	}
-	
-	//if (in_use->head == NULL){
-		//node *curr = free_list->head;
-		//node *next = curr->next;
-		//if(curr == NULL){
-		//	return;
-		//}
-		//while(next != NULL){
-		//	munmap(curr->block->front, curr->block->size);
-		//	munmap(curr->block, sizeof(block_t));
-		//	munmap(curr, sizeof(node));
-		//	curr = next;
-		//	next = next->next;
-		//}
-		//if(curr != NULL){
-		//	munmap(curr->block->front, curr->block->size);
-		//	munmap(curr->block, sizeof(block_t));
-		//	munmap(curr, sizeof(node));
-		//}
-		//return;
-	//}
 
-	index->block->free = true;
 	remove_in_use(index->block);
 	add_free(index->block);
 	coalesce(index->block);
@@ -208,7 +184,9 @@ void gtfree(void *ptr)
 
 int remove_free(block_t *b1) {
 	//simply take the block out of the free list
+    b1->free = false;
     return remove_from_ll(b1, free_list);
+
 }
 
 int remove_in_use(block_t *b1) { 
@@ -250,6 +228,7 @@ node* add_in_use(block_t* b1) {
 
 node* add_free(block_t* b1) {
 //	if (free_list -> head == NULL) printf("still null.... wtf\n");
+	b1->free = true;
 	return add_in_order(b1, free_list);
 }
 
@@ -257,7 +236,6 @@ node* add_in_order(block_t* b1, linked_list* list) {
 	
 	//if (list -> head == NULL) printf("1 still null.... wtf\n");
 	node *new_node = mmap(NULL, sizeof(node), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
-		
 	//if (list -> head == NULL) printf("2 still null.... wtf\n");
 	new_node->block = b1;
 	//printf("addr of b1 = %x",b1->front);	
@@ -306,8 +284,8 @@ void print_ll(linked_list *ll)
     while(curr_node != NULL)
     {
         count++;
-        printf("Item %d: size %d, front %p, buddy: %p\n", count, curr_node->block->size, 
-            curr_node->block->front, curr_node->block->buddy); 
+        printf("Item %d: size %u, front %p, buddy: %p\n", count, curr_node->block->size, 
+            curr_node->block->front, curr_node->block->buddy->front); 
         curr_node = curr_node->next;
     }
     printf("Total Size: %d\n", count);
@@ -319,6 +297,7 @@ int main()
 	int *stuff = (int *)(gtmalloc(69));
 	int *stuff2 = (int *)(gtmalloc(16));
 	int *stuff3 = (int *)(gtmalloc(16));
+	int *stuff4 = (int *)(gtmalloc(8));
 	printf("Created 'stuff' printing in-use list\n");
 	print_ll(in_use);
     printf("Printing free-list\n");
@@ -335,6 +314,7 @@ int main()
 	gtfree(stuff);
     gtfree(stuff2);
     gtfree(stuff3);
+    gtfree(stuff4);
     printf("in_use\n");
     print_ll(in_use);
     printf("free_list\n");
