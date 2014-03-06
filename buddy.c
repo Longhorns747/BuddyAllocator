@@ -9,7 +9,7 @@
 #define FILEPATH "/tmp/mmapped.bin"
 #define FILESIZE 2147483648
 
-block_t* search(int size);
+block_t* search(size_t size);
 block_t* split(block_t *curr_block);
 block_t* coalesce(block_t *b1);
 void* gtmalloc(size_t size);
@@ -27,7 +27,7 @@ linked_list* free_list;
 linked_list* in_use;
 
 //Search through the free_list for a block that fulfills the size request
-block_t* search(int size)
+block_t* search(size_t size)
 {
     //Iterate through list
     //At each block, check if size requested > block size
@@ -45,6 +45,9 @@ block_t* search(int size)
 	
     block_t *smallest_fit = index->block;
 	
+	if(size == FILESIZE){
+		return smallest_fit;
+	}
 	while (smallest_fit->size >= size<<1) {
 		smallest_fit = split(smallest_fit);
 	}
@@ -265,7 +268,12 @@ int main()
 	printf("Test 1:\n");
 	gettimeofday(&start, NULL);
 
-	int *stuff = gtmalloc(FILESIZE);
+	int *stuff;
+	int i;
+	for(i = 0; i < 1000000; i++){
+		stuff = gtmalloc(FILESIZE);
+		gtfree(stuff);
+	}
 
 	gettimeofday(&end, NULL);
 	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
@@ -276,7 +284,10 @@ int main()
 
 	gettimeofday(&start, NULL);
 
-	int *stuffm = malloc(FILESIZE);
+	for(i = 0; i < 1000000; i++){
+		stuff = gtmalloc(FILESIZE);
+		gtfree(stuff);
+	}
 
 	gettimeofday(&end, NULL);
 	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
@@ -284,23 +295,5 @@ int main()
 	
 	printf("malloc: %d\n", elapsedtime);
 
-	gettimeofday(&start, NULL);
-
-	gtfree(stuff);
-
-	gettimeofday(&end, NULL);
-	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
-	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
-	
-	printf("gtfree: %d\n", elapsedtime);
-	gettimeofday(&start, NULL);
-
-	free(stuffm);
-
-	gettimeofday(&end, NULL);
-	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
-	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
-	
-	printf("free: %d\n", elapsedtime);
 	return 0;
 }
