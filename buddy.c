@@ -310,14 +310,9 @@ int main()
 	*stuff = 5;
 	*stuff2 = 6;
 	*stuff3 = 7;
-	printf("yo yo yo%d %d %d\n", *stuff,*stuff2,*stuff3);
 	gtfree(stuff);
     gtfree(stuff2);
     gtfree(stuff3);
     gtfree(stuff4);
-    printf("in_use\n");
-    print_ll(in_use);
-    printf("free_list\n");
-    print_ll(free_list);
     return 0;
 }
