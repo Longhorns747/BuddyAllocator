@@ -103,11 +103,12 @@ void* gtmalloc(size_t size)
     //Search for block
     //Put block in_use list
     //return void pointer
+    	if(size<1 || size>FILESIZE) return NULL;
 	if(in_use == NULL && free_list == NULL){
 		fd = open(FILEPATH, O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
 		lseek(fd, FILESIZE-1, SEEK_SET);
 
-        write(fd, "", 1);
+        	write(fd, "", 1);
 		in_use = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 		free_list = mmap(NULL, sizeof(linked_list), PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 		
@@ -127,6 +128,7 @@ void* gtmalloc(size_t size)
 		free_list -> tail = NULL;
 	}
 	block_t* smallest_fit = search(size);
+	if (smallest_fit == NULL) return NULL;
 	add_in_use(smallest_fit);
 	remove_free(smallest_fit);
 	return smallest_fit->front;
@@ -140,6 +142,8 @@ void gtfree(void *ptr)
     //Put into free_list
     //Sort the in_use list
     //Return
+    	if (ptr == NULL) return;
+
 	node* index = in_use->head;
 	while(index->block->front != ptr && index != NULL){
 		index = index->next;
