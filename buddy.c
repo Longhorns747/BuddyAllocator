@@ -5,6 +5,7 @@
 
 #include "buddy.h"
 #include <fcntl.h>
+#include <sys/time.h>
 #define FILEPATH "/tmp/mmapped.bin"
 #define FILESIZE 2147483648
 
@@ -254,34 +255,48 @@ void print_ll(linked_list *ll)
 
 int main()
 {
-	printf("Starting Test.\n");
-	int *stuff = (int *)(gtmalloc(69));
-	int *stuff2 = (int *)(gtmalloc(16));
-	int *stuff3 = (int *)(gtmalloc(16));
-	int *stuff4 = (int *)(gtmalloc(8));
-    char *stuff5 = (char *)(gtmalloc(5));
-    	
-    printf("Created 'stuff' printing in-use list\n");
-	print_ll(in_use);
-    printf("\n");
-    printf("Printing free-list\n");
-    print_ll(free_list);
-    printf("\n");
+	struct timeval start, end;
+	double elapsedtime;
 
-	*stuff = 5;
-	*stuff2 = 6;
-	*stuff3 = 7;
-	stuff5[0] = 'h';
-    stuff5[1] = 'e';
-    stuff5[2] = 'l';
-    stuff5[3] = 'l';
-    stuff5[4] = 'o';
+	printf("Test 1:\n");
+	gettimeofday(&start, NULL);
 
-    printf("Stuff 1: %d, Stuff2: %d, Stuff3: %d, Stuff5: %s\n", *stuff, *stuff2, *stuff3, stuff5);
-    
-    gtfree(stuff);
-    gtfree(stuff2);
-    gtfree(stuff3);
-    gtfree(stuff4);
-    return 0;
+	int *stuff = gtmalloc(FILESIZE);
+
+	gettimeofday(&end, NULL);
+	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
+	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
+	
+	printf("gt: %d\n", elapsedtime);
+
+
+	gettimeofday(&start, NULL);
+
+	int *stuffm = malloc(FILESIZE);
+
+	gettimeofday(&end, NULL);
+	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
+	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
+	
+	printf("malloc: %d\n", elapsedtime);
+
+	gettimeofday(&start, NULL);
+
+	gtfree(stuff);
+
+	gettimeofday(&end, NULL);
+	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
+	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
+	
+	printf("gtfree: %d\n", elapsedtime);
+	gettimeofday(&start, NULL);
+
+	free(stuffm);
+
+	gettimeofday(&end, NULL);
+	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
+	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
+	
+	printf("free: %d\n", elapsedtime);
+	return 0;
 }
