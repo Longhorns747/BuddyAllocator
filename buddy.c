@@ -259,16 +259,27 @@ int main()
 	int *stuff2 = (int *)(gtmalloc(16));
 	int *stuff3 = (int *)(gtmalloc(16));
 	int *stuff4 = (int *)(gtmalloc(8));
-	
+    char *stuff5 = (char *)(gtmalloc(5));
+    	
     printf("Created 'stuff' printing in-use list\n");
 	print_ll(in_use);
+    printf("\n");
     printf("Printing free-list\n");
     print_ll(free_list);
-         
+    printf("\n");
+
 	*stuff = 5;
 	*stuff2 = 6;
 	*stuff3 = 7;
-	gtfree(stuff);
+	stuff5[0] = 'h';
+    stuff5[1] = 'e';
+    stuff5[2] = 'l';
+    stuff5[3] = 'l';
+    stuff5[4] = 'o';
+
+    printf("Stuff 1: %d, Stuff2: %d, Stuff3: %d, Stuff5: %s\n", *stuff, *stuff2, *stuff3, stuff5);
+    
+    gtfree(stuff);
     gtfree(stuff2);
     gtfree(stuff3);
     gtfree(stuff4);
