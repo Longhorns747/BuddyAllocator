@@ -94,10 +94,14 @@ block_t* coalesce(block_t *b1)
 	
     if (b1->free == false || b1->buddy == NULL || b1->buddy->free == false || b1->parent->free == true)
 		return b1;
-	remove_free(b1);
 	remove_free(b1->buddy);
+	remove_free(b1);
 
 	add_free(b1->parent);
+	block_t *parent = b1->parent;
+	
+	munmap(b1->buddy, sizeof(block_t));
+        munmap(b1, sizeof(block_t));
 
 	return coalesce(b1->parent);
 }
@@ -153,15 +157,14 @@ void gtfree(void *ptr)
 		index = index->next;
 	}
 
-	remove_in_use(index->block);
 	add_free(index->block);
 	coalesce(index->block);
+	remove_in_use(index->block);
 
 	if (in_use -> head == NULL) {
 		//print_ll(free_list);
 		//print_ll(in_use);
 		munmap(free_list->head->block->front,FILESIZE);
-		//	fclose(fd);
 		munmap(free_list->head->block, sizeof(block_t));
 		munmap(free_list->head,sizeof(node));
 		munmap(free_list, sizeof(linked_list));
@@ -173,7 +176,6 @@ void gtfree(void *ptr)
 
 int remove_free(block_t *b1) {
 	//simply take the block out of the free list
-    b1->free = false;
     return remove_from_ll(b1, free_list);
 
 }
@@ -201,6 +203,7 @@ int remove_from_ll(block_t *b1, linked_list *ll) {
             //Actually remove   
             prev_node->next = curr_node->next;
             curr_node->next = NULL;
+	    munmap(curr_node, sizeof(node));
             return 1; 
         }
         
@@ -212,6 +215,7 @@ int remove_from_ll(block_t *b1, linked_list *ll) {
 }
 
 node* add_in_use(block_t* b1) {
+        b1->free = false;
 	return add_in_order(b1, in_use);
 }
 
@@ -279,40 +283,40 @@ int main()
 	double elapsedtime;
 
 	printf("---------------------Test 1------------------------\n");
-	printf("Here, we will initialize and free 'FILESIZE' sized chunks 10,000 times for both malloc and gtmalloc. \n");
+	printf("Here, we will initialize and free 'FILESIZE' sized chunks 100 times for both malloc and gtmalloc. \n");
 	gettimeofday(&start, NULL);
 
 	int *stuff;
 	int i;
-	for(i = 0; i < 10000; i++){
+	for(i = 0; i < 100; i++){
 		stuff = gtmalloc(FILESIZE);
 		gtfree(stuff);
 	}
 
 	gettimeofday(&end, NULL);
 	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
-	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
+	elapsedtime += (end.tv_usec - start.tv_usec) / 1000.0;
 	
 	printf("gt: %f\n", elapsedtime);
 
 
 	gettimeofday(&start, NULL);
 
-	for(i = 0; i < 10000; i++){
+	for(i = 0; i < 100; i++){
 		stuff = malloc(FILESIZE);
 		free(stuff);
 	}
 
 	gettimeofday(&end, NULL);
 	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
-	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
+	elapsedtime += (end.tv_usec - start.tv_usec) / 1000.0;
 	
 	printf("malloc: %f\n", elapsedtime);
 
 	
 
 	printf("---------------------Test 2------------------------\n");
-	printf("This test is testing the search method in our code against malloc by stressing its worst case. It starts with a small block then looks for the biggest possible.\n");
+	printf("This test is testing allocating memory of various sizes when some memory has already been allocated.\n");
 	gettimeofday(&start, NULL);
 	int *stuff2 = gtmalloc(1);
 	for(i = 0; i < 100; i++){
@@ -322,7 +326,7 @@ int main()
 	gtfree(stuff2);
 	gettimeofday(&end, NULL);
 	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
-	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
+	elapsedtime += (end.tv_usec - start.tv_usec) / 1000.0;
 	
 	printf("gt: %f\n", elapsedtime);
 
@@ -330,13 +334,13 @@ int main()
 	gettimeofday(&start, NULL);
 	stuff2 = malloc(1);
 	for(i = 0; i < 100; i++){
-		stuff = malloc(FILESIZE);
+		stuff = malloc(i*8);
 		free(stuff);
 	}
 	free(stuff2);
 	gettimeofday(&end, NULL);
 	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
-	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
+	elapsedtime += (end.tv_usec - start.tv_usec) / 1000.0;
 	
 	printf("malloc: %f\n", elapsedtime);
 
@@ -345,28 +349,28 @@ int main()
 	printf("This will test allocating a lot of small blocks and then freeing them (all one by one).\n");
 	gettimeofday(&start, NULL);
 
-	for(i = 0; i < FILESIZE/8; i++){
+	for(i = 0; i < 100; i++){
 		stuff = gtmalloc(1);
 		gtfree(stuff);
 	}
 
 	gettimeofday(&end, NULL);
 	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
-	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
+	elapsedtime += (end.tv_usec - start.tv_usec) / 1000.0;
 	
 	printf("gt: %f\n", elapsedtime);
 
 
 	gettimeofday(&start, NULL);
 
-	for(i = 0; i < FILESIZE/8; i++){
+	for(i = 0; i < 100; i++){
 		stuff = malloc(1);
 		free(stuff);
 	}
 
 	gettimeofday(&end, NULL);
 	elapsedtime = (end.tv_sec - start.tv_sec) * 1000.0;
-	elapsedtime += (end.tv_usec = start.tv_usec) / 1000.0;
+	elapsedtime += (end.tv_usec - start.tv_usec) / 1000.0;
 	
 	printf("malloc: %f\n", elapsedtime);
 	return 0;
